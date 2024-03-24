@@ -33,17 +33,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import ulid
 
 from .const import (
-    CONF_CHAT_MODEL,
-    CONF_MAX_TOKENS,
-    CONF_PROMPT,
-    CONF_TEMPERATURE,
-    CONF_TOP_P,
     CONF_ASSISTANT_URL,
-    DEFAULT_CHAT_MODEL,
-    DEFAULT_MAX_TOKENS,
-    DEFAULT_PROMPT,
-    DEFAULT_TEMPERATURE,
-    DEFAULT_TOP_P,
     DEFAULT_ASSISTANT_URL,
     DOMAIN,
 )
@@ -64,11 +54,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         try:
             async with aiohttp.ClientSession() as session:
                 payload = {
-                    "model": call.data["model"],
                     "messages": [call.data["prompt"]],
-                    "max_tokens": call.data["max_tokens"],
-                    "top_p": call.data["top_p"],
-                    "temperature": call.data["temperature"],
                 }
                 async with session.post(call.data["assistant_url"], data=json.dumps(payload)) as resp:
                     result = await resp.text()
@@ -89,11 +75,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                     }
                 ),
                 vol.Required("prompt"): cv.string,
-                vol.Required("model"): cv.string,
                 vol.Required("assistant_url"): cv.string,
-                vol.Optional("max_tokens", default=800): cv.positive_int,
-                vol.Optional("top_p", default=1): cv.positive_float,
-                vol.Optional("temperature", default=0.5): cv.positive_float,
             }
         ),
         supports_response=SupportsResponse.ONLY,
@@ -129,11 +111,6 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self, user_input: conversation.ConversationInput
     ) -> conversation.ConversationResult:
         """Process a sentence."""
-        raw_prompt = self.entry.options.get(CONF_PROMPT, DEFAULT_PROMPT)
-        model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
-        max_tokens = self.entry.options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-        top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
-        temperature = self.entry.options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         assistant_url = self.entry.options.get(CONF_ASSISTANT_URL, DEFAULT_ASSISTANT_URL)
 
         if user_input.conversation_id in self.history:
@@ -141,36 +118,17 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             messages = self.history[conversation_id]
         else:
             conversation_id = ulid.ulid_now()
-            try:
-                prompt = self._async_generate_prompt(raw_prompt)
-            except TemplateError as err:
-                _LOGGER.error("Error rendering prompt: %s", err)
-                intent_response = intent.IntentResponse(language=user_input.language)
-                intent_response.async_set_error(
-                    intent.IntentResponseErrorCode.UNKNOWN,
-                    f"Sorry, I had a problem with my template: {err}",
-                )
-                return conversation.ConversationResult(
-                    response=intent_response, conversation_id=conversation_id
-                )
-            messages = [{"role": "system", "content": prompt}]
 
         messages.append({"role": "user", "content": user_input.text})
-
-        _LOGGER.debug("Prompt for %s: %s", model, messages)
 
         try:
             async with aiohttp.ClientSession() as session:
                 payload = {
-                    "model": model,
                     "messages": messages,
-                    "max_tokens": max_tokens,
-                    "top_p": top_p,
-                    "temperature": temperature,
                 }
                 async with session.post(assistant_url, data=json.dumps(payload)) as resp:
                     result = await resp.text()
-        except openai.OpenAIError as err:
+        except Exception as err:
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
@@ -181,7 +139,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
 
         _LOGGER.debug("Response %s", result)
-        response = result.choices[0].message.model_dump(include={"role", "content"})
+        response = result
         messages.append(response)
         self.history[conversation_id] = messages
 
