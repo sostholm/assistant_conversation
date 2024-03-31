@@ -141,7 +141,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         _LOGGER.debug("Response %s", result)
         response = result
-        messages.append(response)
+        messages.append({"role": "assistant", "content": response})
         self.history[conversation_id] = messages
 
         intent_response = intent.IntentResponse(language=user_input.language)
