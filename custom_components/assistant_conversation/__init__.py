@@ -117,6 +117,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             conversation_id = user_input.conversation_id
             messages = self.history[conversation_id]
         else:
+            messages = []
             conversation_id = ulid.ulid_now()
 
         messages.append({"role": "user", "content": user_input.text})
