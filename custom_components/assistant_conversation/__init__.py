@@ -145,7 +145,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self.history[conversation_id] = messages
 
         intent_response = intent.IntentResponse(language=user_input.language)
-        intent_response.async_set_speech(response["content"])
+        intent_response.async_set_speech(response)
         return conversation.ConversationResult(
             response=intent_response, conversation_id=conversation_id
         )
