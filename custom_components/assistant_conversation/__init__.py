@@ -129,7 +129,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     "messages": messages,
                 }
                 async with session.post(assistant_url, data=json.dumps(payload)) as resp:
-                    result = await resp.text()
+                    result = await resp.json()
         except Exception as err:
             intent_response = intent.IntentResponse(language=user_input.language)
             intent_response.async_set_error(
@@ -142,7 +142,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
 
         _LOGGER.debug("Response %s", result)
         response = result
-        messages.append({"role": "assistant", "content": response})
+        messages.append(response)
         self.history[conversation_id] = messages
 
         intent_response = intent.IntentResponse(language=user_input.language)
