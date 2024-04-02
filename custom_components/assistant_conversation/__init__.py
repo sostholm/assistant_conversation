@@ -141,7 +141,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             )
 
         _LOGGER.debug("Response %s", result)
-        response = result
+        response = result['content']
         messages.append(response)
         self.history[conversation_id] = messages
 
