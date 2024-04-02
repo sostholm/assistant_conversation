@@ -125,6 +125,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         try:
             async with aiohttp.ClientSession() as session:
                 payload = {
+                    "conversation_id": conversation_id,
                     "messages": messages,
                 }
                 async with session.post(assistant_url, data=json.dumps(payload)) as resp:
